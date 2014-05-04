@@ -103,8 +103,10 @@ public class ElectoralDataSource {
 				+ "%' or " + Electoral.COLUMN_RELATIVE + " like '%" + text
 				+ "%' or " + Electoral.COLUMN_VOTER_ID + " like '%" + text
 				+ "%' or " + Electoral.COLUMN_HOUSE_NO + " like '%" + text
-				+ "%' ORDER BY " + Electoral.COLUMN_PART_NO + ","
-				+ Electoral.COLUMN_SERIAL + " DESC";
+				+ "%' or " + Electoral.COLUMN_PART_NO + "||'-'||"
+				+ Electoral.COLUMN_SERIAL + " like '" + text + "' ORDER BY "
+				+ Electoral.COLUMN_PART_NO + "," + Electoral.COLUMN_SERIAL
+				+ " DESC";
 
 		Cursor cursor = database.rawQuery(selectQuery, null);
 		return fetchResult(cursor);
