@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Electoral Finder</string>
+    <string name="action_settings">Settings</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="electoral_finder">Electoral Finder</string>
+    <string name="search_btn">Search</string>
+    <string name="import_btn">Download Data</string>
+    <string name="download">Download</string>
+    <string name="constituency_no">Constituency No: </string>
+    <string name="part_from">PartNo From: </string>
+    <string name="part_to">PartNo To:</string>
+    <string name="no_result">No Results</string>
+    <string name="clear_btn">Clear</string>
+    <string name="format">Format: &lt;Constituency&gt;-&lt;PartNo&gt; &lt;SerialNo&gt; &lt;VoterId&gt; &lt;Name&gt; &lt;RelativeName&gt; &lt;HouseNo&gt; &lt;Sex&gt; </string>
+
+</resources>
