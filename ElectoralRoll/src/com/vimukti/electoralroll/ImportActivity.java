@@ -14,6 +14,7 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.PowerManager;
@@ -40,6 +41,8 @@ public class ImportActivity extends Activity {
 		this.cNum = (EditText) findViewById(R.id.c_num);
 		this.from = (EditText) findViewById(R.id.from);
 		this.to = (EditText) findViewById(R.id.to);
+		
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
 	}
 
 	public void onImport(View v) {
