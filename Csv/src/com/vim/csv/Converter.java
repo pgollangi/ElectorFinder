@@ -5,6 +5,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Converter {
 
+	private static final int THREADS_COUNT = 8;
+
 	public static void main(String[] args) throws Exception {
 		String dir = "./";
 		if (args.length > 0) {
@@ -28,14 +30,16 @@ public class Converter {
 		File[] listFiles = dir.listFiles();
 		for (File child : listFiles) {
 			String name = child.getName();
-			if (!name.endsWith(".pdf")) {
+			if (!name.toLowerCase().endsWith(".pdf")) {
 				continue;
 			}
 			queue.add(child);
 		}
 
-		ConverterThread t1 = new ConverterThread(queue, dir);
-		t1.start();
+		for (int i = 1; i <= THREADS_COUNT; i++) {
+			ConverterThread t1 = new ConverterThread(queue, dir);
+			t1.setName("Converter " + i);
+			t1.start();
+		}
 	}
-
 }

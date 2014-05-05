@@ -14,7 +14,7 @@ public class Member {
 
 	@Override
 	public String toString() {
-		return num + "," + id + "," + name + "," + relativeName + ",\"" + hus
-				+ "\"," + age + "," + gender;
+		return num + "," + id + "," + name + "," + relativeName + "," + hus
+				+ "," + age + "," + gender;
 	}
 }

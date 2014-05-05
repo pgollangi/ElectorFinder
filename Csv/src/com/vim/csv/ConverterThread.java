@@ -11,7 +11,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class ConverterThread extends Thread {
 
 	private static final String ELECTOR_NAME_LABEL = "Electors Name:";
-	private static final String CONVERT_COMMAND = "\"C:\\Users\\Prasanna Kumar\\GitHub\\ElectorFinder\\Csv\\pdf2htmlEX-v0.11-win32-static-with-poppler-data\\pdf2htmlEX\" ";
+	private static final String CONVERT_COMMAND = "pdf2htmlEX ";
 
 	private LinkedBlockingQueue<File> queue;
 	private File dir;
@@ -25,8 +25,10 @@ public class ConverterThread extends Thread {
 	public void run() {
 		while (!queue.isEmpty()) {
 			try {
+				System.out.println("Start " + getName());
 				File take = queue.take();
 				convert(take);
+				System.out.println("End " + getName());
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -39,14 +41,15 @@ public class ConverterThread extends Thread {
 
 	private void convertToCSV(File child) throws Exception {
 		String fName = child.getName();
-		String htmlName = fName.replace(".pdf", ".html");
-		String csvName = fName.replace(".pdf", ".csv");
+		String htmlName = fName.replaceAll("(?i).pdf", ".html");
+		String csvName = fName.replaceAll("(?i).pdf", ".csv");
 		if (new File(dir, csvName).exists()) {
 			// Already Converted to CSV
 			System.out.println("Already Converted : " + fName);
 			return;
 		}
 
+		System.out.println("Converting to CSV: " + fName);
 		File html = new File(dir, htmlName);
 		if (!html.exists()) {
 			// HTML converted..
@@ -68,7 +71,7 @@ public class ConverterThread extends Thread {
 		w.close();
 
 		// Delete HTML
-		// html.delete();
+		html.delete();
 	}
 
 	private int convertToHtml(File child) throws Exception {
@@ -82,12 +85,11 @@ public class ConverterThread extends Thread {
 	private void convertToCSV(String in, BufferedWriter out) throws Exception {
 		in = in.replaceAll("(?s)<script[^>]*>(.*?)</script>", "");
 		in = in.replaceAll("(?s)<style[^>]*>(.*?)</style>", "");
+		in = in.replaceAll("(?s)<span[^>]*>(.*?)</span>", "");
 		in = in.replaceAll("<.+?>", "\n").replaceAll("&.+?;", "").replaceAll(
 				"\\n+", "\n");
 
 		String[] split = in.split("\n");
-
-		out.write(in);
 
 		int current = 0;
 		int total = split.length;
@@ -95,12 +97,122 @@ public class ConverterThread extends Thread {
 			if (split[current].isEmpty()) {
 				continue;
 			}
-			if (!isElector(split, current)) {
+			if (isElector(split, current)) {
+				// Read Member
+				current = readMembers(split, current, out);
 				continue;
 			}
-			// Read Member
-			current = readMembers(split, current, out);
+
+			if (isSupplementElector(split, current)) {
+				// Read Member
+				current = readSupplementMember(split, current, out);
+			}
+
 		}
+	}
+
+	private int readSupplementMember(String[] split, int current,
+			BufferedWriter out) throws IOException {
+
+		String sNumCheck = split[current - 1];
+
+		Integer sNo = null;
+		try {
+			sNo = Integer.valueOf(sNumCheck.trim());
+		} catch (Exception e) {
+		}
+
+		current = current + 4;
+
+		Member m = new Member();
+
+		String vId = split[current];
+		m.id = vId;
+		current++;
+
+		StringBuffer buff = new StringBuffer();
+		for (;; current++) {
+			if (split[current].equals("Sex:")) {
+				break;
+			}
+			buff.append(split[current]);
+			buff.append("\n");
+		}
+
+		String totalName = buff.toString();
+		String[] nameSplit = totalName.split("\n");
+
+		int nameLength = nameSplit.length;
+		String name = "";
+		String relative = "";
+		int devider = nameLength / 2;
+		boolean isOddCount = nameLength % 2 != 0;
+		for (int i = 0; i < nameLength; i++) {
+			String cs = nameSplit[i];
+			if (i < devider) {
+				name += cs + " ";
+			} else if (isOddCount) {
+				if (nameSplit.length == 1
+						|| cs.length() < nameSplit[i + 1].length()) {
+					name += cs + " ";
+				} else {
+					relative += cs + " ";
+				}
+				isOddCount = false;
+			} else {
+				relative += cs + " ";
+			}
+		}
+		m.name = name;
+		m.relativeName = relative;
+
+		// SEX
+		current++;
+		m.gender = String.valueOf(split[current].charAt(0)).toUpperCase();
+
+		current++;
+
+		buff = new StringBuffer();
+		// Read Address
+		for (;; current++) {
+			String cs = split[current];
+			if (cs.equalsIgnoreCase("Photo of the ")) {
+				break;
+			}
+			buff.append(split[current]);
+			buff.append(" ");
+		}
+		String address = buff.toString();
+
+		// Read Age
+		String age = null;
+		if (sNo == null) {
+			// Read Age
+			age = split[current - 2];
+			String sNum = split[current - 1];
+			address = address.replace(age + " " + sNum, "");
+			// S NO
+			sNo = Integer.valueOf(sNum.trim());
+			m.num = sNo;
+		} else {
+			age = split[current - 1];
+			try {
+				Integer.parseInt(age.trim());
+			} catch (Exception e) {
+				age = split[current - 2];
+			}
+			address = address.replace(age + " ", "");
+			m.num = sNo;
+		}
+		m.hus = address.replaceAll(",", " ");
+
+		// AGE
+		m.age = Integer.valueOf(age.trim());
+
+		out.write(m.toString());
+		out.write("\n");
+		return current;
+
 	}
 
 	private int readMembers(String[] split, int current, BufferedWriter out)
@@ -168,7 +280,7 @@ public class ConverterThread extends Thread {
 		// Read Age
 		String age = split[current - 1];
 		address = address.replace(age, "");
-		m.hus = address;
+		m.hus = address.replaceAll(",", " ");
 		m.age = Integer.valueOf(age.trim());
 		m.gender = String.valueOf(split[current].charAt(0)).toUpperCase();
 		out.write(m.toString());
@@ -193,6 +305,19 @@ public class ConverterThread extends Thread {
 		}
 
 		return true;
+	}
+
+	private boolean isSupplementElector(String[] split, int current) {
+		if (split.length <= current + 4) {
+			return false;
+		}
+		if (split[current].equals("Age:")
+				&& split[current + 1].equals("House No:")
+				&& split[current + 2].endsWith("Name:")
+				&& split[current + 3].equals("Electors Name:")) {
+			return true;
+		}
+		return false;
 	}
 
 	private static String readFile(File in) throws Exception {
