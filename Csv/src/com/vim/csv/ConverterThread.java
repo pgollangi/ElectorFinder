@@ -10,7 +10,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class ConverterThread extends Thread {
 
-	private static final String ELECTOR_NAME_LABEL = "Electors Name:";
 	private static final String CONVERT_COMMAND = "pdf2htmlEX ";
 
 	private LinkedBlockingQueue<File> queue;
@@ -23,13 +22,16 @@ public class ConverterThread extends Thread {
 
 	@Override
 	public void run() {
+		File take = null;
 		while (!queue.isEmpty()) {
 			try {
-				System.out.println("Start " + getName());
-				File take = queue.take();
+				take = queue.take();
 				convert(take);
-				System.out.println("End " + getName());
 			} catch (Exception e) {
+				if (take != null) {
+					System.out.println("Error while converting "
+							+ take.getName());
+				}
 				e.printStackTrace();
 			}
 		}
@@ -45,7 +47,7 @@ public class ConverterThread extends Thread {
 		String csvName = fName.replaceAll("(?i).pdf", ".csv");
 		if (new File(dir, csvName).exists()) {
 			// Already Converted to CSV
-			System.out.println("Already Converted : " + fName);
+			// System.out.println("Already Converted : " + fName);
 			return;
 		}
 
@@ -56,7 +58,7 @@ public class ConverterThread extends Thread {
 			int exitVal = convertToHtml(child);
 			if (exitVal != 0) {
 				// cannot convert to html
-				System.out.println("Cannot convert to html: " + fName);
+				// System.out.println("Cannot convert to html: " + fName);
 				return;
 			}
 		}
@@ -76,9 +78,7 @@ public class ConverterThread extends Thread {
 
 	private int convertToHtml(File child) throws Exception {
 		Runtime runtime = Runtime.getRuntime();
-		Process p = runtime.exec(CONVERT_COMMAND + "--dest-dir \""
-				+ dir.getAbsolutePath() + "\" \"" + child.getName() + "\"",
-				null, dir);
+		Process p = runtime.exec(CONVERT_COMMAND + child.getName());
 		return p.waitFor();
 	}
 
@@ -86,8 +86,8 @@ public class ConverterThread extends Thread {
 		in = in.replaceAll("(?s)<script[^>]*>(.*?)</script>", "");
 		in = in.replaceAll("(?s)<style[^>]*>(.*?)</style>", "");
 		in = in.replaceAll("(?s)<span[^>]*>(.*?)</span>", "");
-		in = in.replaceAll("<.+?>", "\n").replaceAll("&.+?;", "").replaceAll(
-				"\\n+", "\n");
+		in = in.replaceAll("<.+?>", "\n").replaceAll("&.+?;", "")
+				.replaceAll("\\n+", "\n");
 
 		String[] split = in.split("\n");
 
@@ -179,6 +179,10 @@ public class ConverterThread extends Thread {
 			if (cs.equalsIgnoreCase("Photo of the ")) {
 				break;
 			}
+			if (cs.equalsIgnoreCase("D E L E T E D")) {
+				m.name = "(DELETED)" + m.name;
+				break;
+			}
 			buff.append(split[current]);
 			buff.append(" ");
 		}
@@ -189,6 +193,11 @@ public class ConverterThread extends Thread {
 		if (sNo == null) {
 			// Read Age
 			age = split[current - 2];
+			try {
+				Integer.parseInt(age.trim());
+			} catch (Exception e) {
+				age = split[current - 3];
+			}
 			String sNum = split[current - 1];
 			address = address.replace(age + " " + sNum, "");
 			// S NO
@@ -293,7 +302,7 @@ public class ConverterThread extends Thread {
 			return false;
 		}
 		String eName = split[current + 1];
-		if (!eName.equals(ELECTOR_NAME_LABEL)) {
+		if (!(eName.equals("Electors Name:") || eName.equals("Elector's Name:"))) {
 			return false;
 		}
 
@@ -314,7 +323,8 @@ public class ConverterThread extends Thread {
 		if (split[current].equals("Age:")
 				&& split[current + 1].equals("House No:")
 				&& split[current + 2].endsWith("Name:")
-				&& split[current + 3].equals("Electors Name:")) {
+				&& (split[current + 3].equals("Electors Name:") || split[current + 3]
+						.equals("Elector's Name:"))) {
 			return true;
 		}
 		return false;
